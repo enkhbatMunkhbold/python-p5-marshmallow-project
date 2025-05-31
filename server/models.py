@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.ext.hybrid import hybrid_property
 from config import db, bcrypt, ma
 
@@ -36,3 +36,49 @@ class Flight(db.Model):
     arrival_time = db.Column(db.DateTime, nullable=False)
 
     bookings = db.relationship('Booking', backref='flight', lazy=True)
+
+class Airline(db.Model):
+    __tablename__ = 'airlines'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    country = db.Column(db.String(50), nullable=False)
+
+    bookings = db.relationship('Booking', backref='airline', lazy=True)
+
+class Booking(db.Model):
+    __tablename__ = 'bookings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    booking_date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    total_price = db.Column(db.Float, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    flight_id = db.Column(db.Integer, db.ForeignKey('flights.id'), nullable=False)
+    airline_id = db.Column(db.Integer, db.ForeignKey('airlines.id'), nullable=False)
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
+        load_instance = True
+        exclude = ('password',)
+
+class AirlineSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Airline
+        load_instance = True
+
+class FlightSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Flight
+        load_instance = True
+
+
+class BookingSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Booking
+        load_instance = True
+        include_fk = True
+
+    user = ma.Nested(UserSchema)
+    flight = ma.Nested(FlightSchema)
+    airline = ma.Nested(AirlineSchema)
+
