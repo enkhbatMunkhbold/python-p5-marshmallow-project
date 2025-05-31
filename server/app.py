@@ -1,13 +1,10 @@
 from marshmallow import fields, validate, ValidationError
 from flask import request, session, jsonify, make_response
 from flask_restful import Resource
+from models import User, Flight, Airline, Booking, UserSchema, FlightSchema, AirlineSchema, BookingSchema
+from sqlalchemy.exc import IntegrityError
 
-# Local imports
 from config import app, db, api, ma
-# Add your model imports
-
-
-# Views go here!
 
 @app.route('/')
 def index():
