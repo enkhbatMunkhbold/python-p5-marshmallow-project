@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
-from sqlalchemy.ext.hybrid import hybrid_property
 from config import db, bcrypt, ma
+from marshmallow import post_load
 
 
 class User(db.Model):
@@ -11,20 +11,16 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     _password_hash = db.Column(db.String, nullable=False)
 
-    flights = db.relationship('Flight', secondary='bookings', viewonly=True)
-    airlines = db.relationship('Airline', secondary='bookings', viewonly=True)
+    # flights = db.relationship('Flight', secondary='bookings', viewonly=True)
+    # airlines = db.relationship('Airline', secondary='bookings', viewonly=True)
+    bookings = db.relationship('Booking', backref='user', lazy=True)
 
-    @hybrid_property
-    def password_hash(self):
-        return self._password_hash
-
-    @password_hash.setter
-    def password_hash(self, password):
+    def set_password(self, password):
         password_hash = bcrypt.generate_password_hash(password.encode('utf-8'))
         self._password_hash = password_hash.decode('utf-8')
 
     def authenticate(self, password):
-        return bcrypt.check_password_hash(self.password_hash, password.encode('utf-8'))
+        return bcrypt.check_password_hash(self._password_hash, password.encode('utf-8'))
 
 class Flight(db.Model):
     __tablename__ = 'flights'
@@ -59,18 +55,35 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
         load_instance = True
-        exclude = ('password',)
+        exclude = ('_password_hash', 'bookings')
+        include_fk = True
+
+    password = ma.String(load_only=True)
+
+    @post_load
+    def make_user(self, data, **kwargs):
+        if 'password' in data:
+            user = User(
+                username=data['username'],
+                email=data['email']
+            )
+            user.set_password(data['password'])
+            return user
+        return User(**data)
 
 class AirlineSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Airline
         load_instance = True
+        include_fk = True
+        exclude = ('bookings',)
 
 class FlightSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Flight
         load_instance = True
-
+        include_fk = True
+        exclude = ('bookings',)
 
 class BookingSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
