@@ -20,7 +20,11 @@ class User(db.Model):
         self._password_hash = password_hash.decode('utf-8')
 
     def authenticate(self, password):
-        return bcrypt.check_password_hash(self._password_hash, password.encode('utf-8'))
+        return bcrypt.check_password_hash(self._password_hash, password.encode('utf-8'))  
+
+    def __repr__(self):
+        return f"<User {self.name}>"  
+    
 
 class Flight(db.Model):
     __tablename__ = 'flights'
@@ -33,6 +37,9 @@ class Flight(db.Model):
 
     bookings = db.relationship('Booking', backref='flight', lazy=True)
 
+    def __repr__(self):
+        return f"<Flight from {self.origin} to {self.destination}>"
+
 class Airline(db.Model):
     __tablename__ = 'airlines'
     id = db.Column(db.Integer, primary_key=True)
@@ -40,6 +47,9 @@ class Airline(db.Model):
     country = db.Column(db.String(50), nullable=False)
 
     bookings = db.relationship('Booking', backref='airline', lazy=True)
+
+    def __repr__(self):
+        return f"<Airline {self.name} of {self.country}>"
 
 class Booking(db.Model):
     __tablename__ = 'bookings'
@@ -50,6 +60,9 @@ class Booking(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     flight_id = db.Column(db.Integer, db.ForeignKey('flights.id'), nullable=False)
     airline_id = db.Column(db.Integer, db.ForeignKey('airlines.id'), nullable=False)
+
+    def __repr__(self):
+        return f"<Booking from {self.booking_date} to {self.total_price}>"
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
